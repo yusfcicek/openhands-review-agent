@@ -1,1 +1,156 @@
-# openhands-review-agent
+# Enterprise AI Code Review Agent
+**Codebase-Aware Impact Architect**
+
+This project creates a sophisticated, enterprise-grade AI Code Review Agent designed to integrate seamlessly into CI/CD pipelines (GitLab CI/CD). Unlike standard AI reviewers, this agent understands the *semantic impact* of changes, tracks dependencies beyond the git diff, enforces configurable policies, and intelligently decides when to review to optimize costs and efficiency.
+
+---
+
+## 🚀 Key Features
+
+### 🧠 1. Smart Review Triage
+Avoids unnecessary LLM costs by intelligently categorizing changes:
+- **SKIP**: Automatically skips trivial files (docs, configs).
+- **AUTO_APPROVE**: Approves non-functional changes (comments, whitespace).
+- **CRITICAL**: Forces review for security-sensitive patterns (secrets, API keys) or Public API changes.
+- **SMART SCAN**: Selects between `QUICK_SCAN` and `FULL_REVIEW` based on complexity and line count.
+
+### 🔍 2. Advanced Analysis Capabilities
+- **Semantic Change Analysis**: Uses AST to detect `REFACTOR`, `FEATURE`, `BUGFIX`, and `BREAKING_CHANGE`. Verify if a change is complete or breaks code integrity.
+- **Dependency Impact Tracking**: Identifies code affected by data structure changes *even if not in the git diff* (Ripple Effect Analysis).
+- **SAST (Static Application Security Testing)**: Built-in scanner for SQL Injection, XSS, Command Injection, and Hardcoded Secrets.
+- **Code Quality & Performance**: Checks for SOLID principles, O(n²) complexity, memory leaks, and N+1 query patterns.
+
+### 🛡️ 3. Enterprise Policy & Gates
+- **Configurable Policies**: Define rules in `review_policy.yaml` (e.g., block on critical security issues, set quality thresholds).
+- **Review Gate**: Automatically evaluates the agent's review report to `PASS`, `WARN`, or `FAIL` the CI pipeline.
+- **Metrics**: Exports detailed review metrics (scores, duration, issues) to Prometheus or GitLab OpenMetrics.
+
+### 🧠 4. Cognitive Memory Management
+- **SmartMemoryStrategy**: Token-aware memory that prioritizes Critical/Security insights and automatically summarizes older context while preserving vital information.
+
+---
+
+## 🛠️ Installation
+
+### Prerequisites
+- Python 3.10+
+- GitLab Instance (Cloud or Self-Hosted)
+- vLLM or compatible OpenAI API provider
+
+### Setup
+1. Clone the repository:
+   ```bash
+   git clone <repository-url>
+   cd openhands
+   ```
+
+2. Install dependencies using uv:
+   ```bash
+   # Install uv if not already installed (https://github.com/astral-sh/uv)
+   curl -LsSf https://astral.sh/uv/install.sh | sh
+
+   # Create virtual environment and install dependencies
+   uv sync
+   ```
+
+3. Configure Environment Variables:
+   ```bash
+   export GITLAB_URL="https://gitlab.example.com"
+   export GITLAB_TOKEN="your-access-token"
+   export IVME_API_URL="http://vllm-endpoint:8000/v1"
+   export IVME_API_KEY="your-api-key"
+   ```
+
+---
+
+## ⚙️ Configuration (`review_policy.yaml`)
+
+The behavior of the agent is controlled by `openhands/agent/config/review_policy.yaml`. You can customize:
+
+```yaml
+triage:
+  skip_patterns: 
+    - ".*\\.md$"
+    - ".*\\.lock$"
+  allow_only_comments: true
+
+security:
+  block_on_critical: true
+  banned_patterns: 
+    - "eval\\s*\\("
+    - "password\\s*="
+
+gate:
+  quality_score_threshold: 60
+  fail_pipeline_on_critical: true
+```
+
+---
+
+## 🏃 Usage
+
+### Manual Execution / CI Pipeline
+Run the agent using `uv run` by providing the Project ID and Merge Request IID:
+
+```bash
+uv run python openhands/agent/main.py --project-id <PROJECT_ID> --mr-iid <MR_IID>
+```
+
+**Options:**
+- `--policy <path>`: Path to a custom policy YAML file (default: built-in `review_policy.yaml`).
+- `--token-limit <int>`: Max tokens for memory (default: 100k).
+
+### Integration with GitLab CI/CD
+Add the following job to your `.gitlab-ci.yml`:
+
+```yaml
+ai-code-review:
+  stage: review
+  image: python:3.11
+  script:
+    - curl -LsSf https://astral.sh/uv/install.sh | sh
+    - source $HOME/.cargo/env
+    - uv sync
+    - uv run python openhands/agent/main.py --project-id $CI_PROJECT_ID --mr-iid $CI_MERGE_REQUEST_IID
+  artifacts:
+    reports:
+      metrics: metrics.txt
+  allow_failure: true
+```
+
+---
+
+## 🧪 Testing
+
+The project includes a comprehensive unit test suite:
+
+```bash
+# Run all unit tests
+uv run python -m unittest discover tests/unit
+```
+
+Key tests:
+- `tests/unit/test_smart_memory.py`: Verifies memory prioritization and summarization.
+- `tests/unit/test_agent_core.py`: Verifies agent logic and prompt construction.
+
+---
+
+## 📂 Project Structure
+
+```
+openhands/
+├── agent/
+│   ├── analyzers/       # Semantic, SAST, Quality, Performance analyzers
+│   ├── config/          # Configuration loader and Policy definitions
+│   ├── core/            # Main Agent logic (ReviewAgent)
+│   ├── gate/            # Review Gate (Pass/Fail decision)
+│   ├── memory/          # SmartMemoryStrategy
+│   ├── metrics/         # Prometheus/GitLab metrics collector
+│   ├── triage/          # Smart Review Triage logic
+│   └── tools/           # LangChain tool definitions
+├── tests/               # Unit tests
+└── main.py              # CLI Entry point
+```
+
+## 📜 License
+[MIT License](LICENSE)
