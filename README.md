@@ -106,10 +106,9 @@ Add the following job to your `.gitlab-ci.yml`:
 ```yaml
 ai-code-review:
   stage: review
-  image: python:3.11
+  image: python:3.12-slim
   script:
     - curl -LsSf https://astral.sh/uv/install.sh | sh
-    - source $HOME/.cargo/env
     - uv sync
     - uv run python openhands/agent/main.py --project-id $CI_PROJECT_ID --mr-iid $CI_MERGE_REQUEST_IID
   artifacts:
