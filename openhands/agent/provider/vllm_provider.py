@@ -8,9 +8,9 @@ class VLLMProvider(LLMProvider):
     """Concrete implementation of LLMProvider for vLLM."""
     
     def __init__(self, model_name: str = None, api_url: str = None, api_key: str = None):
-        self.model_name = model_name or os.getenv("IVME_MODEL")
-        self.api_url = api_url or os.getenv("IVME_API_URL")
-        self.api_key = api_key or os.getenv("IVME_API_KEY")
+        self.model_name = model_name or os.getenv("VLLM_MODEL")
+        self.api_url = api_url or os.getenv("VLLM_API_URL")
+        self.api_key = api_key or os.getenv("VLLM_API_KEY")
         
         # Explicit http_client to avoid pydantic/openai 'proxies' arg mismatch
         self.http_client = httpx.Client()
